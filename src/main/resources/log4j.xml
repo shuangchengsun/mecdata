@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE log4j:configuration SYSTEM "log4j.dtd">
+
+<log4j:configuration xmlns:log4j="http://jakarta.apache.org/log4j/">
+
+
+    <root>
+        <level value="info"/>
+        <appender-ref ref="defaultConsoleAppender"/>
+        <appender-ref ref="defaultFileAppender"/>
+    </root>
+
+    <!--默认的控制台输出-->
+    <appender name="defaultConsoleAppender" class="org.apache.log4j.ConsoleAppender">
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d{yyyy-MM-dd HH:mm:ss.SSS} %t %5p [%c:%L] - %m%n"/>
+        </layout>
+    </appender>
+
+    <!--默认的文件输出-->
+    <appender name="defaultFileAppender" class="org.apache.log4j.DailyRollingFileAppender">
+        <param name="File" value="${LOG_PATH}/defaultLogFile.log"/>
+        <param name="Append" value="true"/>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d{yyyy-MM-dd HH:mm:ss.SSS} %t %5p [%c:%L] - %m%n"/>
+        </layout>
+    </appender>
+
+    <!--标准错误输出-->
+    <appender name="commonErrorAppender" class="org.apache.log4j.DailyRollingFileAppender">
+        <param name="file" value="${LOG_PATH}/common-error.log"/>
+        <param name="append" value="true"/>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d{yyyy-MM-dd HH:mm:ss.SSS} %t %5p [%c:%L] - %m%n"/>
+        </layout>
+        <filter class="org.apache.log4j.varia.LevelMatchFilter">
+            <param name="level" value="error"/>
+        </filter>
+    </appender>
+
+    <appender name="systemAppender" class="org.apache.log4j.DailyRollingFileAppender">
+        <param name="file" value="${LOG_PATH}"/>
+    </appender>
+
+
+    <logger name="defaultConsoleLogger" additivity="false">
+        <level value="info"/>
+        <appender-ref ref="defaultConsoleAppender"/>
+    </logger>
+    
+    <logger name="defaultFileLogger" additivity="false">
+        <level value="info"/>
+        <appender-ref ref="defaultFileAppender"/>
+    </logger>
+
+    
+    <!--数据库操作记录-->
+    <appender name="dataBaseSqlAppender" class="org.apache.log4j.RollingFileAppender">
+        <param name="file" value="${LOG_PATH}/database/sql/sql.log"/>
+        <param name="append" value="false"/>
+        <param name="maxSize" value="10M"/>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d{yyyy-MM-dd HH:mm:ss.SSS}-[%t %5p]-[%c] - %m%n"/>
+        </layout>
+    </appender>
+    <logger name="dataBaseSqlLogger">
+        <appender-ref ref="dataBaseSqlAppender"/>
+        <level value="info"/>
+    </logger>
+</log4j:configuration>

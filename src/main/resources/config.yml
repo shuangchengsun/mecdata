@@ -1,0 +1,11 @@
+datasource:
+  url: jdbc:mysql://rm-2ze6tlyn0l3812nsmqo.mysql.rds.aliyuncs.com:3306/mecdata
+  userName: d1d969b30349018b
+  password: f92688061b676a24130299dfd03e458a
+  databaseName: mecdata
+
+connectPool:
+  coreSize: 30
+  maxSize: 100
+
+
