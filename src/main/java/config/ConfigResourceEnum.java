@@ -11,5 +11,6 @@ public class ConfigResourceEnum {
     static {
         properties.add("log.level");
         properties.add("log.path");
+        properties.add("appName");
     }
 }

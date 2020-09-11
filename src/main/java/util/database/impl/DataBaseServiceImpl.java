@@ -98,6 +98,7 @@ public class DataBaseServiceImpl implements DataBaseService {
         try {
             PreparedStatement preparedStatement = connection.prepareStatement(sql);
             result = preparedStatement.execute();
+            preparedStatement.close();
         } catch (SQLException e) {
             e.printStackTrace();
         } finally {
@@ -163,6 +164,8 @@ public class DataBaseServiceImpl implements DataBaseService {
                     String methodName = BeanUtil.getSetMethod(fieldName);
                     methodMap.get(methodName).invoke(instance,object);
                 }
+                resultSet.close();
+                statement.close();
 
             }
 
