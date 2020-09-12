@@ -81,35 +81,34 @@ public class DataClean {
         CSVService service = new CSVServiceImpl();
         ExecutorService executorService = Executors.newFixedThreadPool(20);
         AtomicInteger integer = new AtomicInteger(0);
-
-        Runnable task = new Runnable() {
-            @Override
-            public void run() {
-                int num = integer.getAndAdd(1);
-                String fileName  = "dataSubFile_"+num+".csv";
-                System.out.println(fileName+" is uploading");
-                CSVWorker worker = service.getWorker(path+fileName,Encoding.UTF_8);
-
-                SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm");
-                DataBaseService dataBaseService= DataBaseServiceFactory.getDataBaseService();
-                try {
-                    ItemModel model = new ItemModel();
-                    String[] data = (String[]) worker.readLine();
-                    while(data.length>0){
-                        model.setUserid(data[0]);
-                        model.setAppname(data[2]);
-                        model.setStartTime(simpleDateFormat.parse(data[3]));
-                        model.setLongitude(Double.parseDouble(data[8]));
-                        model.setLatitude(Double.parseDouble(data[9]));
-                        dataBaseService.insertObject(model,"oridata");
-                        data = (String[]) worker.readLine();
-                    }
-                } catch (IOException | ParseException e) {
-                    e.printStackTrace();
-                }
-            }
-        };
         for(int i =0;i<16;i++) {
+            Runnable task = new Runnable() {
+                @Override
+                public void run() {
+                    int num = integer.getAndAdd(1);
+                    String fileName  = "dataSubFile_"+num+".csv";
+                    System.out.println(fileName+" is uploading");
+                    CSVWorker worker = service.getWorker(path+fileName,Encoding.UTF_8);
+
+                    SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm");
+                    DataBaseService dataBaseService= DataBaseServiceFactory.getDataBaseService();
+                    try {
+                        ItemModel model = new ItemModel();
+                        String[] data = (String[]) worker.readLine();
+                        while(data.length>0){
+                            model.setUserid(data[0]);
+                            model.setAppname(data[2]);
+                            model.setStartTime(simpleDateFormat.parse(data[3]));
+                            model.setLongitude(Double.parseDouble(data[8]));
+                            model.setLatitude(Double.parseDouble(data[9]));
+                            dataBaseService.insertObject(model,"oridata");
+                            data = (String[]) worker.readLine();
+                        }
+                    } catch (IOException | ParseException e) {
+                        e.printStackTrace();
+                    }
+                }
+            };
             executorService.execute(task);
             System.out.println("task num:  "+i+" is running");
         }
