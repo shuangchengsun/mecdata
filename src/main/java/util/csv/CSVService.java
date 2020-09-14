@@ -2,6 +2,7 @@ package util.csv;
 
 import util.common.Encoding;
 
+import java.io.IOException;
 import java.util.List;
 
 /**
@@ -27,4 +28,6 @@ public interface CSVService {
     boolean writeLine(String file, Object[] data, String[] header, Encoding encoding, boolean isAppend);
 
     boolean writeLines(String file, List<Object[]> data, String[] header, Encoding encoding, boolean isAppend);
+
+    Object[] getHead(String file) throws IOException;
 }

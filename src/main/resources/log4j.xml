@@ -58,8 +58,8 @@
     <appender name="dataBaseSqlAppender" class="org.apache.log4j.RollingFileAppender">
         <param name="file" value="${LOG_PATH}/${APPNAME}/database/sql/sql.log"/>
         <param name="append" value="true"/>
-        <param name="maxFileSize" value="50M"/>
-        <param name="maxBackupIndex" value="100"/>
+        <param name="maxSize" value="10m"/>
+        <param name="maxBackupIndex" value="20"/>
         <layout class="org.apache.log4j.PatternLayout">
             <param name="ConversionPattern" value="%d{yyyy-MM-dd HH:mm:ss} [%16t %5p] [%c:%L] - %m%n"/>
         </layout>

@@ -20,7 +20,16 @@ import java.util.function.Function;
  */
 public class CSVServiceImpl implements CSVService {
 
+    private Encoding defaultEncoding = Encoding.UTF_8;
+
     private final Map<String, CSVWorker> workerMap = new ConcurrentHashMap<>();
+
+    public CSVServiceImpl(Encoding defaultEncoding) {
+        this.defaultEncoding = defaultEncoding;
+    }
+
+    public CSVServiceImpl() {
+    }
 
     @Override
     public CSVWorker getWorker(String file, Encoding encoding) {
@@ -56,7 +65,7 @@ public class CSVServiceImpl implements CSVService {
     public Object readValue(String file, String key) {
         CSVWorker worker = workerMap.get(file);
         if (worker == null) {
-            worker = getWorker(file,Encoding.UTF_8);
+            worker = getWorker(file,defaultEncoding);
         }
         try {
             return worker.getValue(key, false);
@@ -71,7 +80,7 @@ public class CSVServiceImpl implements CSVService {
     public void readRecord(String file) {
         CSVWorker worker = workerMap.get(file);
         if (worker == null) {
-            worker = getWorker(file,Encoding.UTF_8);
+            worker = getWorker(file,defaultEncoding);
         }
         try {
             worker.readLine();
@@ -86,7 +95,7 @@ public class CSVServiceImpl implements CSVService {
         CSVWorker worker = workerMap.get(file);
         Object[] data = null;
         if (worker == null) {
-            worker = getWorker(file,Encoding.UTF_8);
+            worker = getWorker(file,defaultEncoding);
         }
         try {
             data = worker.readLine();
@@ -122,6 +131,15 @@ public class CSVServiceImpl implements CSVService {
 
     @Override
     public void setEncoding(String file, Encoding encoding) {
+        this.defaultEncoding = encoding;
+    }
 
+    @Override
+    public Object[] getHead(String file) throws IOException {
+        CSVWorker worker = workerMap.get(file);
+        if(worker == null){
+            worker = getWorker(file,defaultEncoding);
+        }
+        return worker.getHeader();
     }
 }
