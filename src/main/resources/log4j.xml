@@ -24,18 +24,29 @@
         <layout class="org.apache.log4j.PatternLayout">
             <param name="ConversionPattern" value="%d{yyyy-MM-dd HH:mm:ss} [%16t %5p] [%c:%L] - %m%n"/>
         </layout>
+
+        <filter class="org.apache.log4j.varia.LevelRangeFilter">
+            <!-- 设置日志输出的最小级别 -->
+            <param name="levelMin" value="debug"/>
+            <!-- 设置日志输出的最大级别 -->
+            <param name="levelMax" value="warn"/>
+        </filter>
     </appender>
 
     <!--标准错误输出-->
     <appender name="commonErrorAppender" class="org.apache.log4j.DailyRollingFileAppender">
         <param name="file" value="${LOG_PATH}/${APPNAME}/common-error.log"/>
-        <param name="append" value="true"/>
+        <param name="append" value="false"/>
         <layout class="org.apache.log4j.PatternLayout">
             <param name="ConversionPattern" value="%d{yyyy-MM-dd HH:mm:ss} [%16t %5p] [%c:%L] - %m%n"/>
         </layout>
-        <filter class="org.apache.log4j.varia.LevelMatchFilter">
-            <param name="level" value="error"/>
+        <filter class="org.apache.log4j.varia.LevelRangeFilter">
+            <!-- 设置日志输出的最小级别 -->
+            <param name="levelMin" value="ERROR"/>
+            <!-- 设置日志输出的最大级别 -->
+            <param name="levelMax" value="ERROR"/>
         </filter>
+
     </appender>
 
     <appender name="systemAppender" class="org.apache.log4j.DailyRollingFileAppender">
@@ -46,11 +57,13 @@
     <logger name="defaultConsoleLogger" additivity="false">
         <level value="info"/>
         <appender-ref ref="defaultConsoleAppender"/>
+
     </logger>
     
     <logger name="defaultFileLogger" additivity="false">
         <level value="info"/>
         <appender-ref ref="defaultFileAppender"/>
+        <appender-ref ref="commonErrorAppender"/>
     </logger>
 
     
@@ -58,14 +71,20 @@
     <appender name="dataBaseSqlAppender" class="org.apache.log4j.RollingFileAppender">
         <param name="file" value="${LOG_PATH}/${APPNAME}/database/sql/sql.log"/>
         <param name="append" value="true"/>
-        <param name="maxSize" value="10m"/>
+        <param name="MaxFileSize" value="10MB"/>
         <param name="maxBackupIndex" value="20"/>
         <layout class="org.apache.log4j.PatternLayout">
             <param name="ConversionPattern" value="%d{yyyy-MM-dd HH:mm:ss} [%16t %5p] [%c:%L] - %m%n"/>
         </layout>
+        <filter class="org.apache.log4j.varia.LevelRangeFilter">
+            <param name="levelMin" value="debug"/>
+            <param name="levelMax" value="warn"/>
+        </filter>
     </appender>
-    <logger name="dataBaseSqlLogger">
+    <logger name="dataBaseSqlLogger" additivity="false">
         <appender-ref ref="dataBaseSqlAppender"/>
+        <appender-ref ref="defaultConsoleAppender"/>
+        <appender-ref ref="commonErrorAppender"/>
         <level value="info"/>
     </logger>
 </log4j:configuration>

@@ -1,6 +1,7 @@
 package util.database;
 
 import java.sql.Connection;
+import java.sql.SQLException;
 
 /**
  * @author sunshuangcheng
@@ -13,11 +14,15 @@ public interface ConnectPool {
     /**
      * @return 连接
      */
-    Connection getConnection();
+    Worker getConnection();
 
     /**
      * 将连接归还
-     * @param connection 连接
+     * @param worker 连接
      */
-    void idleConnection(Connection connection);
+    void idleConnection(Worker worker);
+
+    void close(Worker worker);
+
+    void failed(Worker worker);
 }

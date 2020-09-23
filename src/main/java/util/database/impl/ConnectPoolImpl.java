@@ -2,11 +2,13 @@ package util.database.impl;
 
 
 import util.database.ConnectPool;
+import util.database.Worker;
 import util.database.model.DatabaseConfig;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.util.Deque;
 import java.util.LinkedList;
 import java.util.Queue;
 
@@ -26,8 +28,8 @@ public class ConnectPoolImpl implements ConnectPool {
     private String password;
 
     private int currentWorkersNum = 0;      // 目前总共有多少worker
-    private int idleWorkersNum = 0;
-    Queue<Connection> idleWorkers = new LinkedList<>();
+    private int idleWorkersNum = 0;         // 空闲的worker
+    Deque<Worker> idleWorkers = new LinkedList<>(); //存储空闲的worker
 
     public ConnectPoolImpl(int coreSize, int maxSize, String database, String user, String password, String url, boolean isLazy) {
         this.coreSize = coreSize;
@@ -50,7 +52,8 @@ public class ConnectPoolImpl implements ConnectPool {
                 Connection connection = DriverManager.getConnection(this.url, this.user, this.password);
                 idleWorkersNum++;
                 currentWorkersNum++;
-                idleWorkers.add(connection);
+                Worker worker = new DefaultWorker( connection);
+                idleWorkers.add(worker);
             }
         } catch (ClassNotFoundException | SQLException e) {
             e.printStackTrace();
@@ -78,7 +81,8 @@ public class ConnectPoolImpl implements ConnectPool {
                 Connection connection = DriverManager.getConnection(this.url, this.user, this.password);
                 idleWorkersNum++;
                 currentWorkersNum++;
-                idleWorkers.add(connection);
+                Worker worker = new DefaultWorker(connection);
+                idleWorkers.add(worker);
             }
         } catch (ClassNotFoundException | SQLException e) {
             e.printStackTrace();
@@ -87,11 +91,11 @@ public class ConnectPoolImpl implements ConnectPool {
     }
 
     @Override
-    public Connection getConnection() {
-        Connection connection = null;
+    public Worker getConnection() {
+        Worker worker = null;
         synchronized (this) {
             if (idleWorkersNum > 0) {
-                connection = idleWorkers.poll();
+                worker = idleWorkers.pollLast();
                 idleWorkersNum--;
             } else {
                 if (currentWorkersNum < maxSize) {
@@ -101,9 +105,10 @@ public class ConnectPoolImpl implements ConnectPool {
                             currentWorkersNum++;
                             idleWorkersNum++;
                             Connection conn = DriverManager.getConnection(this.url, this.user, this.password);
-                            idleWorkers.add(conn);
+                            Worker worker1 = new DefaultWorker(conn);
+                            idleWorkers.addFirst(worker1);
                         }
-                        connection = idleWorkers.poll();
+                        worker = idleWorkers.pollLast();
                         idleWorkersNum--;
                     } catch (ClassNotFoundException | SQLException e) {
                         e.printStackTrace();
@@ -111,14 +116,42 @@ public class ConnectPoolImpl implements ConnectPool {
                 }
             }
         }
-        return connection;
+        return worker;
     }
 
     @Override
-    public void idleConnection(Connection connection) {
-        synchronized (this){
-            idleWorkers.add(connection);
+    public void idleConnection(Worker worker) {
+        synchronized (this) {
+            idleWorkers.addFirst(worker);
             idleWorkersNum++;
+        }
+    }
+
+    @Override
+    public void close(Worker worker){
+        synchronized (this) {
+            try {
+                if (worker != null) {
+                    worker.close();
+                }
+                currentWorkersNum--;
+                worker = null;
+            }catch (SQLException exception){
+                //System.out.println(exception.getMessage());
+            }
+        }
+    }
+
+    @Override
+    public void failed(Worker worker) {
+        synchronized (this){
+            try{
+                worker.close();
+            }catch (SQLException exception){
+                //System.out.println(exception.getMessage());
+            }
+            currentWorkersNum--;
+            worker = null;
         }
     }
 

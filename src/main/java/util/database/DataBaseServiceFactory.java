@@ -4,8 +4,6 @@ import util.common.YamlReader;
 import util.database.impl.ConnectPoolImpl;
 import util.database.impl.DataBaseServiceImpl;
 import util.database.model.DatabaseConfig;
-import util.secure.SecureManager;
-import util.secure.impl.SecureManagerImpl;
 
 /**
  * @author sunshuangcheng
@@ -42,10 +40,8 @@ public class DataBaseServiceFactory {
                 String user = (String) YamlReader.getValueByKey("datasource.userName");
                 String password = (String) YamlReader.getValueByKey("datasource.password");
 
-                SecureManager manager = new SecureManagerImpl();
-
-                config.setUser("alan");
-                config.setPassword("Sun196130");
+                config.setUser(user);
+                config.setPassword(password);
 
                 ConnectPool connectPool = new ConnectPoolImpl(config,true);
 

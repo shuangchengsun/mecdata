@@ -2,6 +2,8 @@ package dataprocess;
 
 import com.csvreader.CsvReader;
 import model.ItemModel;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import util.common.Encoding;
 import util.csv.CSVService;
 import util.csv.CSVUtil;
@@ -9,16 +11,15 @@ import util.csv.CSVWorker;
 import util.csv.impl.CSVServiceImpl;
 import util.database.DataBaseService;
 import util.database.DataBaseServiceFactory;
+import util.database.exception.DataBaseException;
+import util.log.LoggerUtil;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -28,6 +29,13 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @create 2020-09-10 2:57 下午
  */
 public class DataClean {
+    private static final AtomicInteger signal = new AtomicInteger(0);
+
+    private static final Logger LOGGER = LoggerFactory.getLogger("defaultFileLogger");
+
+    private static final int idleTime = 5*60*1000;
+
+    private static final int busyTime = 20*60*1000;
 
     public static void getAppName() throws IOException {
         String filePath = "/Users/sunshuangcheng/source/python/MECPaper/resource/appNameAndContent.csv";
@@ -149,10 +157,13 @@ public class DataClean {
                             model.setStartTime(simpleDateFormat.parse(data[3]));
                             model.setLongitude(Double.parseDouble(data[8]));
                             model.setLatitude(Double.parseDouble(data[9]));
-                            dataBaseService.insertObject(model, "oridata");
+                            boolean res = dataBaseService.insertObject(model, "oridata");
+                            if (!res) {
+                                return;
+                            }
                             data = (String[]) worker.readLine();
                         }
-                    } catch (IOException | ParseException e) {
+                    } catch (IOException | ParseException | DataBaseException e) {
                         e.printStackTrace();
                     }
                 }
@@ -163,31 +174,61 @@ public class DataClean {
 
     }
 
-    public static void uploadSingleThread(){
+    /**
+     * 单线程读文件，多线程写数据库.
+     */
+    public static void uploadSingleThread() {
         String file = "/Users/sunshuangcheng/source/python/MECPaper/resource/appNameAndContent.csv";
         BlockingQueue<ItemModel> queue = new LinkedBlockingDeque<>(256);
 
-        ExecutorService executorService = Executors.newFixedThreadPool(32);
-        for (int i = 0; i < 32; i++) {
+        Runnable runnable = new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    while (true) {
+                        Thread.sleep(20 * 1000);
+                        while (!busySignal()) ;
+                        LoggerUtil.info(LOGGER, "变更标志状态");
+                    }
+                } catch (InterruptedException e) {
+                    LoggerUtil.error(LOGGER, e);
+                    e.printStackTrace();
+                }
+            }
+        };
+        Thread thread = new Thread(runnable);
+        thread.start();
+
+        ExecutorService executorService = Executors.newFixedThreadPool(100);
+        for (int i = 0; i < 100; i++) {
             Runnable task = new Runnable() {
                 @Override
                 public void run() {
                     DataBaseService dataBaseService = DataBaseServiceFactory.getDataBaseService();
                     ItemModel model = queue.poll();
-                    while(model != null) {
-                        dataBaseService.insertObject(model, "oridata");
-                        model = queue.poll();
+                    try {
+                        while (model != null) {
+                            dataBaseService.insertObject(model, "oridata");
+                            model = queue.poll(busyTime, TimeUnit.MILLISECONDS);
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
                     }
                 }
             };
             executorService.execute(task);
         }
+
         CSVService service = new CSVServiceImpl(Encoding.GBK);
         String[] data = (String[]) service.readLine(file);
         SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm");
 
         try {
             while (data.length > 0) {
+                if (idleSignal()) {
+                    LoggerUtil.info(LOGGER, "sleep 10s");
+                    Thread.sleep(5 * 1000);
+                }
                 ItemModel model = new ItemModel();
                 model.setUserid(data[0]);
                 model.setAppname(data[2]);
@@ -201,10 +242,41 @@ public class DataClean {
                 data = (String[]) service.readLine(file);
             }
         } catch (ParseException | InterruptedException e) {
+            LoggerUtil.error(LOGGER, e);
             e.printStackTrace();
         }
 
         System.out.println("finished");
 
+    }
+
+    private static boolean idleSignal() {
+        if (signal.get() == 1) {
+            synchronized (signal) {
+                if (signal.get() == 1) {
+                    signal.set(0);
+                } else {
+                    return false;
+                }
+            }
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    private static boolean busySignal() {
+        if (signal.get() == 0) {
+            synchronized (signal) {
+                if (signal.get() == 0) {
+                    signal.set(1);
+                } else {
+                    return false;
+                }
+                return true;
+            }
+        } else {
+            return false;
+        }
     }
 }

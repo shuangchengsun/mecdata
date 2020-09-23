@@ -7,5 +7,11 @@
       <jdbc-driver>com.mysql.cj.jdbc.Driver</jdbc-driver>
       <jdbc-url>jdbc:mysql://rm-2ze6tlyn0l3812nsmqo.mysql.rds.aliyuncs.com:3306/mecdata</jdbc-url>
     </data-source>
+    <data-source source="LOCAL" name="mecdata@10.28.237.217" uuid="e12c25ac-a4cf-4e33-8a21-533a73e57a1a">
+      <driver-ref>mysql.8</driver-ref>
+      <synchronize>true</synchronize>
+      <jdbc-driver>com.mysql.cj.jdbc.Driver</jdbc-driver>
+      <jdbc-url>jdbc:mysql://10.28.237.217:3306/mecdata?serverTimezone=GMT</jdbc-url>
+    </data-source>
   </component>
 </project>

@@ -5,18 +5,21 @@ import org.slf4j.LoggerFactory;
 import util.common.BeanUtil;
 import util.database.ConnectPool;
 import util.database.DataBaseService;
+import util.database.Worker;
+import util.database.exception.DataBaseException;
+import util.database.exception.DataBasesErrorEnum;
 import util.log.LoggerUtil;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.sql.*;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
 /**
  * 用户调用其中的一个函数，以操作数据库，目前仅支持最简单的CRUD，涉及到的问题是，如何动态构造sql，
  * 如何传递用户参数的类型，
+ *
+ *
  * @author sunshuangcheng
  * @version V-1.0
  * @description
@@ -33,8 +36,14 @@ public class DataBaseServiceImpl implements DataBaseService {
         this.connectPoolImpl = connectPoolImpl;
     }
 
+    /**
+     * 插入一个对象到数据库中，如果反射执行错误或者获取数据库连接失败，则直接抛出错误
+     * @param object    对象名
+     * @param tableName 表名
+     * @return
+     */
     @Override
-    public boolean insertObject(Object object, String tableName){
+    public boolean insertObject(Object object, String tableName) {
         //获取到领域模型的class对象
         Class<?> klass = object.getClass();
 
@@ -53,7 +62,7 @@ public class DataBaseServiceImpl implements DataBaseService {
         for (Field field : fields) {
             //构建sql语句
             String name = field.getName();
-            if(name.toLowerCase().equals("id")){
+            if (name.toLowerCase().equals("id")) {
                 continue;
             }
 
@@ -70,17 +79,17 @@ public class DataBaseServiceImpl implements DataBaseService {
             try {
                 Object invoke = klass.getMethod(methodName).invoke(object);
 
-                if(typeName.equals("java.util.Date")){
+                if (typeName.equals("java.util.Date")) {
                     SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm");
                     invoke = simpleDateFormat.format(invoke);
                 }
                 queue.add(invoke);
 
             } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
-                e.printStackTrace();
+                throw new DataBaseException(DataBasesErrorEnum.ReflectError, e);
             }
         }
-        sqlBuilder.deleteCharAt(sqlBuilder.length()-1);
+        sqlBuilder.deleteCharAt(sqlBuilder.length() - 1);
 
         sqlBuilder.append(") values (");
         while (!queue.isEmpty()) {
@@ -89,20 +98,53 @@ public class DataBaseServiceImpl implements DataBaseService {
             sqlBuilder.append("'");
             sqlBuilder.append(",");
         }
-        sqlBuilder.deleteCharAt(sqlBuilder.length()-1);
+        sqlBuilder.deleteCharAt(sqlBuilder.length() - 1);
         sqlBuilder.append(")");
         String sql = sqlBuilder.toString();
         LoggerUtil.info(LOGGER, sql);
-        Connection connection = connectPoolImpl.getConnection();
+        Worker worker = connectPoolImpl.getConnection();
+
+        //若是获取连接失败
+        if (worker == null) {
+            //重试5次
+            int i = 0;
+            while (i < 5 && worker == null) {
+                worker = connectPoolImpl.getConnection();
+                i++;
+            }
+            if (worker == null) {
+                throw new DataBaseException(DataBasesErrorEnum.ConnectionError);
+            }
+        }
+
         boolean result = false;
         try {
-            PreparedStatement preparedStatement = connection.prepareStatement(sql);
-            result = preparedStatement.execute();
-            preparedStatement.close();
-        } catch (SQLException e) {
-            e.printStackTrace();
+
+            result = worker.executeSql(sql);
+            int index = 0;
+            while(!result && index<5){
+                connectPoolImpl.idleConnection(worker);
+                worker = connectPoolImpl.getConnection();
+                result = worker.executeSql(sql);
+                if(!result){
+                    connectPoolImpl.failed(worker);
+                    worker = null;
+                }
+                index++;
+            }
+//            PreparedStatement preparedStatement = connection.prepareStatement(sql);
+//            result = preparedStatement.execute();
+//            preparedStatement.close();
+        } catch (DataBaseException e) {
+            connectPoolImpl.failed(worker);
+            worker = null;
+//            e.printStackTrace();
+            System.out.println("DataBaseServiceImpl.insertObject sql执行错误");
+            throw e;
         } finally {
-            connectPoolImpl.idleConnection(connection);
+            if (worker != null) {
+                connectPoolImpl.idleConnection(worker);
+            }
         }
         return result;
     }
@@ -116,65 +158,71 @@ public class DataBaseServiceImpl implements DataBaseService {
 
     @Override
     public Object getObjectById(Class<?> kclss, Object id, String... tables) {
-        Object instance = null;
-        try {
-            instance = kclss.newInstance();
-
-            //获取class中的所有方法
-            Method[] methods = kclss.getMethods();
-            Map<String, Method> methodMap = new HashMap<>();
-            for(Method method:methods){
-                methodMap.put(method.getName(),method);
-            }
-
-            StringBuilder sqlBuilder = new StringBuilder();
-            sqlBuilder.append("SELECT ");
-
-            Field[] declaredFields = kclss.getDeclaredFields();
-            Queue<String> fieldQueue = new LinkedList<>();
-            for (Field field : declaredFields) {
-                sqlBuilder.append(field.getName());
-                fieldQueue.add(field.getName());
-                sqlBuilder.append(",");
-            }
-
-            String table = kclss.getName();
-            if (tables != null && tables.length == 1) {
-                table = tables[0];
-            }
-            sqlBuilder.deleteCharAt(sqlBuilder.length()-1);
-            sqlBuilder.append(" FROM ").append(table).append(" WHERE id=").append(id);
-
-            Connection connection = connectPoolImpl.getConnection();
-            if(connection != null){
-                String SQL  = sqlBuilder.toString();
-                Statement statement = connection.createStatement();
-                ResultSet resultSet = statement.executeQuery(SQL);
-                LoggerUtil.info(LOGGER,SQL);
-                String fieldName =null;
-                if(!resultSet.next()){
-                    return null;
-                }
-                while (!fieldQueue.isEmpty()){
-                    fieldName = fieldQueue.poll();
-                    if(fieldName == null){
-                        throw new RuntimeException("属性为空");
-                    }
-                    Object object = resultSet.getObject(fieldName);
-                    String methodName = BeanUtil.getSetMethod(fieldName);
-                    methodMap.get(methodName).invoke(instance,object);
-                }
-                resultSet.close();
-                statement.close();
-
-            }
-
-        } catch (InstantiationException | IllegalAccessException |
-                SQLException | InvocationTargetException e) {
-            e.printStackTrace();
-        }
-        return instance;
+        return null;
     }
+
+
+    //    @Override
+//    public Object getObjectById(Class<?> kclss, Object id, String... tables) {
+//        Object instance = null;
+//        try {
+//            instance = kclss.newInstance();
+//
+//            //获取class中的所有方法
+//            Method[] methods = kclss.getMethods();
+//            Map<String, Method> methodMap = new HashMap<>();
+//            for (Method method : methods) {
+//                methodMap.put(method.getName(), method);
+//            }
+//
+//            StringBuilder sqlBuilder = new StringBuilder();
+//            sqlBuilder.append("SELECT ");
+//
+//            Field[] declaredFields = kclss.getDeclaredFields();
+//            Queue<String> fieldQueue = new LinkedList<>();
+//            for (Field field : declaredFields) {
+//                sqlBuilder.append(field.getName());
+//                fieldQueue.add(field.getName());
+//                sqlBuilder.append(",");
+//            }
+//
+//            String table = kclss.getName();
+//            if (tables != null && tables.length == 1) {
+//                table = tables[0];
+//            }
+//            sqlBuilder.deleteCharAt(sqlBuilder.length() - 1);
+//            sqlBuilder.append(" FROM ").append(table).append(" WHERE id=").append(id);
+//
+//            Worker worker = connectPoolImpl.getConnection();
+//            if (worker != null) {
+//                String SQL = sqlBuilder.toString();
+//                Statement statement = worker.createStatement();
+//                ResultSet resultSet = statement.executeQuery(SQL);
+//                LoggerUtil.info(LOGGER, SQL);
+//                String fieldName = null;
+//                if (!resultSet.next()) {
+//                    return null;
+//                }
+//                while (!fieldQueue.isEmpty()) {
+//                    fieldName = fieldQueue.poll();
+//                    if (fieldName == null) {
+//                        throw new RuntimeException("属性为空");
+//                    }
+//                    Object object = resultSet.getObject(fieldName);
+//                    String methodName = BeanUtil.getSetMethod(fieldName);
+//                    methodMap.get(methodName).invoke(instance, object);
+//                }
+//                resultSet.close();
+//                statement.close();
+//
+//            }
+//
+//        } catch (InstantiationException | IllegalAccessException |
+//                SQLException | InvocationTargetException e) {
+//            e.printStackTrace();
+//        }
+//        return instance;
+//    }
 
     @Override
     public Object getObjectByField(Class kclass, String fieldName, Object filedValue) {
