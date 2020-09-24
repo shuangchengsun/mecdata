@@ -6,6 +6,7 @@
 /dataSources.local.xml
 *.log
 /target/
+!/target/mecdata-1.0-SNAPSHOT.jar
 .idea/
 
 *.class
