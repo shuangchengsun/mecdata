@@ -36,7 +36,8 @@ public class CSVWorkerImpl implements CSVWorker {
             file1.createNewFile();
         }
         this.encoding = encoding;
-        reader = new BufferedReader(new InputStreamReader(new FileInputStream(file),encoding));
+        InputStream inputStream = this.getClass().getClassLoader().getResourceAsStream(file);
+        reader = new BufferedReader(new InputStreamReader(inputStream,encoding));
         outputStream = new RandomAccessFile(file, "rw");
     }
 

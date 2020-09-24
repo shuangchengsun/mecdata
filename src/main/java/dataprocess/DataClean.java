@@ -33,9 +33,9 @@ public class DataClean {
 
     private static final Logger LOGGER = LoggerFactory.getLogger("defaultFileLogger");
 
-    private static final int idleTime = 5*60*1000;
+    private static final int idleTime = 5 * 60 * 1000;
 
-    private static final int busyTime = 20*60*1000;
+    private static final int busyTime = 20 * 60 * 1000;
 
     public static void getAppName() throws IOException {
         String filePath = "/Users/sunshuangcheng/source/python/MECPaper/resource/appNameAndContent.csv";
@@ -178,7 +178,8 @@ public class DataClean {
      * 单线程读文件，多线程写数据库.
      */
     public static void uploadSingleThread() {
-        String file = "/Users/sunshuangcheng/source/python/MECPaper/resource/appNameAndContent.csv";
+//        String file = "E:\\source\\java\\mecdata\\src\\main\\resources\\ori.csv";
+        String file = "ori.csv";
         BlockingQueue<ItemModel> queue = new LinkedBlockingDeque<>(256);
 
         Runnable runnable = new Runnable() {
@@ -186,7 +187,7 @@ public class DataClean {
             public void run() {
                 try {
                     while (true) {
-                        Thread.sleep(20 * 1000);
+                        Thread.sleep(50 * 1000);
                         while (!busySignal()) ;
                         LoggerUtil.info(LOGGER, "变更标志状态");
                     }
@@ -200,7 +201,7 @@ public class DataClean {
         thread.start();
 
         ExecutorService executorService = Executors.newFixedThreadPool(100);
-        for (int i = 0; i < 100; i++) {
+        for (int i = 0; i < 10; i++) {
             Runnable task = new Runnable() {
                 @Override
                 public void run() {
@@ -226,8 +227,8 @@ public class DataClean {
         try {
             while (data.length > 0) {
                 if (idleSignal()) {
-                    LoggerUtil.info(LOGGER, "sleep 10s");
-                    Thread.sleep(5 * 1000);
+                    LoggerUtil.info(LOGGER, "sleep 5min");
+                    Thread.sleep(10 * 1000);
                 }
                 ItemModel model = new ItemModel();
                 model.setUserid(data[0]);

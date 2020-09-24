@@ -5,8 +5,10 @@
 /dataSources/
 /dataSources.local.xml
 ../log/
-../target/
+/target/
+.idea/
 
 *.class
 
 
+*.csv
