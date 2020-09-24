@@ -67,7 +67,17 @@ public class ConfigInit {
                 System.setProperty(s,value);
                 System.out.println(name+": "+value);
             }
+        }
+        setLogPath();
+    }
 
+    /**
+     * 设定默认的日志目录。
+     */
+    private static void setLogPath(){
+        String log_path = System.getProperty("LOG_PATH");
+        if(log_path == null){
+            System.setProperty("LOG_PATH","${user.home}/logs");
         }
     }
 

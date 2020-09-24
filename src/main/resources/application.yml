@@ -1,5 +1,5 @@
 appName: mecdata
 log:
   level: info
-  path: /Users/sunshuangcheng/source/java/mecdata/log
+  path: ${user.home}/logs
 
