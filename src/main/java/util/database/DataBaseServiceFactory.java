@@ -32,13 +32,13 @@ public class DataBaseServiceFactory {
                     return service;
                 }
                 config = new DatabaseConfig();
-                config.setDatabase((String) YamlReader.getValueByKey("datasource.databaseName"));
-                config.setUrl((String) YamlReader.getValueByKey("datasource.url"));
-                config.setCoreSize((int) YamlReader.getValueByKey("connectPool.coreSize") );
-                config.setMaxSize((int)YamlReader.getValueByKey("connectPool.maxSize"));
+                config.setDatabase(System.getProperty("DATASOURCE_DATABASENAME"));
+                config.setUrl(System.getProperty("DATASOURCE_URL"));
+                config.setCoreSize(Integer.parseInt(System.getProperty("CONNECTPOOL_CORESIZE")) );
+                config.setMaxSize(Integer.parseInt(System.getProperty("CONNECTPOOL_MAXSIZE")));
 
-                String user = (String) YamlReader.getValueByKey("datasource.userName");
-                String password = (String) YamlReader.getValueByKey("datasource.password");
+                String user = System.getProperty("DATASOURCE_USERNAME");
+                String password = System.getProperty("DATASOURCE_PASSWORD");
 
                 config.setUser(user);
                 config.setPassword(password);

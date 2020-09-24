@@ -69,6 +69,7 @@ public class ConfigInit {
             }
         }
         setLogPath();
+        setDatasource();
     }
 
     /**
@@ -78,6 +79,29 @@ public class ConfigInit {
         String log_path = System.getProperty("LOG_PATH");
         if(log_path == null){
             System.setProperty("LOG_PATH","${user.home}/logs");
+        }
+        if(System.getProperty("LOG_LEVEL") == null){
+            System.setProperty("LOG_LEVEL","info");
+        }
+    }
+    private static void setDatasource(){
+        if(System.getProperty("DATASOURCE_URL") == null){
+            System.setProperty("DATASOURCE_URL","jdbc:mysql://rm-2ze6tlyn0l3812nsmqo.mysql.rds.aliyuncs.com:3306/mecdata");
+        }
+        if(System.getProperty("DATASOURCE_USERNAME") == null){
+            System.setProperty("DATASOURCE_USERNAME","alan");
+        }
+        if(System.getProperty("DATASOURCE_PASSWORD") == null){
+            System.setProperty("DATASOURCE_PASSWORD","Sun196130");
+        }
+        if(System.getProperty("DATASOURCE_DATABASENAME") == null){
+            System.setProperty("DATASOURCE_DATABASENAME","mecdata");
+        }
+        if(System.getProperty("CONNECTPOOL_CORESIZE") == null){
+            System.setProperty("CONNECTPOOL_CORESIZE","30");
+        }
+        if (System.getProperty("CONNECTPOOL_MAXSIZE") == null){
+            System.setProperty("CONNECTPOOL_MAXSIZE","100");
         }
     }
 
