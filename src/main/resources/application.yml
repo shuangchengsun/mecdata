@@ -1,5 +1,5 @@
 appName: mecdata
 log:
   level: info
-  path: ${user.dir}/log
+  path: /logs
 
